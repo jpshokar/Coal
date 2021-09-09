@@ -5,7 +5,7 @@
 /* =============================================
 *  Coal framework
 *  @Author: jpshokar ( mentioned in the code base as: @jss )
-*  @License: [PRIVATE] SHOULD NOT BE RELEASED!
+*  @License: MIT
  *  @Description: graphics framework for games* and applications*.
 * =============================================
 */ 

@@ -1,0 +1,87 @@
+
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include "include/foundation/coalfoundation_windows.h"
+
+#include "include/coal.h"
+
+#include <math.h>
+#include "include/coal_shapes.h"
+#include "include/coal_gl_framebuffer.h"
+#include "include/coal_font.h"
+#include <time.h>
+
+int main(int argc, char* argv[])
+{
+    COAL_PREFIX(InitWindow)();
+    COAL_PREFIX(ConfigurateGLXVersion)(4,6);
+    if (argc == 1)
+    {
+        COAL_PRINTF("[%s] wrong operands: should be %s <FILE_NAME>\n", *argv, *argv);
+        return -1;
+    }
+    COAL_PRINTF("Loading: %s\n", argv[argc-1]);
+    char* FontSelected = argv[argc-1];
+    COALTYPE_PREFIX(Window) Window = COAL_PREFIX(CreateWindow)("Font Viewer", COAL_USE_DEFAULT,COAL_USE_DEFAULT, COALENUM_PREFIX(STYLE_RESIZABLE));
+    COAL_PREFIX(MakeContextCurrent)(&Window);
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK)
+    {
+        /* @NOTE: something bad happened.... */
+        return 0x2;
+    }
+    COALTYPE_PREFIX(Renderer) renderer=  COAL_PREFIX(CreateRenderer)(Window.w, Window.h, COALENUM_PREFIX(RENDERER_2D));
+    COALTYPE_PREFIX(Text) Text = COAL_PREFIX(CreateText)(FontSelected, Window.Title, 30,20, 30);
+    COALTYPE_PREFIX(Rectangle) FontSplice = COAL_PREFIX(CreateRectangle)(Window.w/2,0,3, Window.h); 
+    FontSplice.Color = (Color){44,44,44,255};
+    COAL_PREFIX(ClearColor)((Color){22,22,22,255});
+    COALTYPE_PREFIX(Rectangle) HeaderBG  = COAL_PREFIX(CreateRectangle)(0,0,Window.w, Text.GlyphSize);
+    COALTYPE_PREFIX(Rectangle) FontGlyph = COAL_PREFIX(CreateRectangle)(0 ,0, Window.w /4 ,Window.h/2);
+    FontGlyph.Texture = Text.Texture;
+    
+    HeaderBG.Color = (Color){44,44,44,255};
+    COALTYPE_PREFIX(Text) DemoText;
+    COALTYPE_PREFIX(Text) DemoText2;
+    COALTYPE_PREFIX(Text) DemoText3;
+    DemoText = COAL_PREFIX(CreateText)(FontSelected, "The quick brown fox jumps over the lazy dog.", HeaderBG.x+10,HeaderBG.y+30*3,30);
+    DemoText2 = COAL_PREFIX(CreateText)(FontSelected, "The quick brown fox jumps over the lazy dog.", HeaderBG.x+10,HeaderBG.y+40*3,20);
+    DemoText3 = COAL_PREFIX(CreateText)(FontSelected, "The quick brown fox jumps over the lazy dog.", HeaderBG.x+10,HeaderBG.y+50*3,15);
+    FontGlyph.x = DemoText3.x + DemoText.GlyphSize;
+    FontGlyph.y = DemoText3.y + DemoText.GlyphSize;
+    COALTYPE_PREFIX(Event) event;
+    B32 WindowOpen = 1;
+    while (WindowOpen)
+    {
+        //printf("%f\n", COAL_PREFIX(GetTime)());
+        COAL_PREFIX(PollEvents)(&Window, &event);
+        if (event.Type == COALENUM_PREFIX(MESSAGE_KEY_PRESS)){
+            if (event.KeyPressed == 27){
+                WindowOpen = 0;
+            }
+            
+        }
+        if (event.Type == COALENUM_PREFIX(MESSAGE_KEY_RELEASE)){
+            if (event.KeyReleased == 27){
+                WindowOpen = 0;
+            }
+            
+        }
+        
+        if (event.MouseX == COALENUM_PREFIX(MESSAGE_MOUSE_MOVED)){
+            WindowOpen = 0;
+            
+        }
+        COAL_PREFIX(Clear)();
+        COAL_PREFIX(DrawRectangle)(&HeaderBG, renderer);
+        COAL_PREFIX(DrawRectangle)(&FontSplice, renderer);
+        COAL_PREFIX(DrawRectangle)(&FontGlyph, renderer);
+        COAL_PREFIX(DrawText)(&Text, &renderer);
+        COAL_PREFIX(DrawText)(&DemoText, &renderer);
+        COAL_PREFIX(DrawText)(&DemoText2, &renderer);
+        COAL_PREFIX(DrawText)(&DemoText3, &renderer);
+        COAL_PREFIX(SwapBuffers)(&Window);
+    }
+    
+    COAL_PREFIX(DeleteWindow)(&Window);
+    return (0);
+}

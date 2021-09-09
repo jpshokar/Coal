@@ -1,0 +1,144 @@
+
+
+/*
+*  TODO: Cool post processing
+*  TODO: GUI Library
+*  TODO: Audio.
+*/
+
+#include <GL/glew.h>
+#include <math.h>
+#include "include/coal.h"
+ 
+
+int main(int argc, char* argv[] )
+{
+    
+    COAL_PREFIX(ConfigurateGLXVersion)(3,2);
+    COAL_PREFIX(InitWindow)();
+    F32 Width = 1200, Height = 700;
+    COALTYPE_PREFIX(Window) window = COAL_PREFIX(CreateWindow)("3D Test | 2021 ",Width, Height, COALENUM_PREFIX(STYLE_RESIZABLE));
+    COAL_PREFIX(MakeContextCurrent)(&window);
+    
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK)
+    {
+        return 0x2;
+    }
+    
+    COALTYPE_PREFIX(Renderer) renderer = COAL_PREFIX(CreateRenderer)(Width, Height, COALENUM_PREFIX(RENDERER_3D));
+    COALTYPE_PREFIX(Event) event;
+    
+    char* text ="Hello, World!\nHello";
+    
+    COALTYPE_PREFIX(Rectangle) rectangle  = COAL_PREFIX(CreateRectangle)(0,0,Width/2,Height/2);
+    COALTYPE_PREFIX(Rectangle) rectangle2  = COAL_PREFIX(CreateRectangle)(0,512,Width/2,Height/2);
+    COALTYPE_PREFIX(Text)      Text       = COAL_PREFIX(CreateText)(argv[argc-1], "Https://google.com", (Width/2)-30 , (Height/2)-30, 30);
+    rectangle.Color = (Color){44,44,99,255};
+    COALTYPE_PREFIX(CoalView) view = {0};
+    
+    
+    F32 Amount = 1;
+    COALTYPE_PREFIX(Texture) fat = COAL_PREFIX(LoadTexture)("Assets//obese.jpg", COALENUM_PREFIX(TEXTURE_JPG));
+    COAL_PREFIX(UseView)(view, &renderer);
+    COAL_PREFIX(ClearColor)((Color){11,11,22,255});
+    view.y = Height;
+    while (1)
+    {
+        Amount = abs(cos(COAL_PREFIX(GetTime)()) * 512);
+        Amount = abs(Amount);
+        
+        view.z = ((cos(COAL_PREFIX(GetTime)()) * -Width));
+        
+        view.Rotate = ((sin(COAL_PREFIX(GetTime)()) * (Amount)));
+        COAL_PREFIX(UseView)(view, &renderer);
+        COAL_PREFIX(Clear)();
+        for (int i=0;i<Amount;i++){
+            
+             COAL_PREFIX(PushDrawing)(&renderer); {
+                
+                 COAL_PREFIX(Color4f)(cos(COAL_PREFIX(GetTime)() + i) * 255,0,0,255);
+                
+                 COAL_PREFIX(Vertex3f)(0 , Height + (50 * i),50 * i);
+                 COAL_PREFIX(Color4f)(0,cos(COAL_PREFIX(GetTime)() + i) * 255,0,255);
+                 COAL_PREFIX(Vertex3f)(0,   (50 * i),50 * i);
+                 COAL_PREFIX(Color4f)(0,cos(COAL_PREFIX(GetTime)() + i) * 255,500,255);
+                 COAL_PREFIX(Vertex3f)(Width,    (50 * i),50 * i);
+                 COAL_PREFIX(Color4f)(0,cos(COAL_PREFIX(GetTime)() + i)  * 255,200,255);
+                 COAL_PREFIX(Vertex3f)(Width , Height + (50 * i) ,50 * i);
+            }  COAL_PREFIX(PopDrawing)(GL_TRIANGLE_FAN); 
+            
+        }
+        
+        
+        
+        if (COAL_PREFIX(KeyPressed)('f')){
+            COALTYPE_PREFIX(CoalView) temp = {0};
+            view = temp;
+        }
+        
+        if (COAL_PREFIX(KeyPressed)('+')){
+            
+            Amount += 1;
+            
+        }
+        
+        if (COAL_PREFIX(KeyPressed)('-')){
+            Amount -= 1;
+            
+        }
+        if (COAL_PREFIX(KeyPressed)('q')){
+            view.Rotate -= 50;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        if (COAL_PREFIX(KeyPressed)('r')){
+            view.Rotate += 50;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        
+        if (COAL_PREFIX(KeyPressed)('z')){
+            view.y -= 10;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        if (COAL_PREFIX(KeyPressed)('x')){
+            view.y += 50;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        if (COAL_PREFIX(KeyPressed)('a')){
+            view.x += 10;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        if (COAL_PREFIX(KeyPressed)('d')){
+            view.x -= 10;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        
+        if (COAL_PREFIX(KeyPressed)('s')){
+            view.z += 10;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        
+        if (COAL_PREFIX(KeyPressed)('w')){
+            view.z -= 10;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        
+        if (COAL_PREFIX(KeyPressed)('w') && COAL_PREFIX(KeyPressed)('1')){
+            view.z -= 60;
+            COAL_PREFIX(UseView)(view, &renderer);
+        }
+        
+        COAL_PREFIX(PollEvents)(&window, &event);
+        
+        
+        
+        COAL_PREFIX(SwapBuffers)(&window);
+        
+        
+    }
+    
+    COAL_PREFIX(DeleteWindow)(&window);
+    return 0;
+    
+}
+

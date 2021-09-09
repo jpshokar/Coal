@@ -1,0 +1,234 @@
+/* Demo 01 */
+
+/*
+*  TODO: Cool post processing
+*  TODO: Audio.
+*  TODO: GUI Library
+*/
+
+#include <GL/glew.h>
+#include "include/foundation/coalfoundation_windows.h"
+#include "include/coal.h"
+
+#include <math.h>
+#include "include/coal_shapes.h"
+#include "include/coal_gl_framebuffer.h"
+#include "include/coal_font.h"
+#include <time.h>
+
+String8 ReadFile(String8 File)
+{
+    FILE* file = fopen( File, "rb");
+    if (file == NULL) COAL_PRINTF("File failed to read.");
+    long Bytes;
+    
+    fseek(file, 0L, SEEK_END);
+    Bytes = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+    
+    char* msg = malloc(sizeof(char)*Bytes+1);
+    if (msg == NULL ) COAL_PRINTF("Mem error");
+    
+    if (fread(msg, 1, Bytes, file) != Bytes) COAL_PRINTF("Reading error");
+    msg[Bytes] = '\0';
+    return msg;
+}
+void SwayAnimation(COALTYPE_PREFIX(Rectangle)* blk, int off)
+{
+    srand(time(NULL));
+    blk->y += (sin(COAL_PREFIX(GetTime)()  + off)* 0.03);
+}
+void CheckCollision(COALTYPE_PREFIX(Rectangle)* A, COALTYPE_PREFIX(Rectangle)* B)
+{
+    
+    if ( (A->x <= B->x + B->w && B->x <= A->x + A->w &&
+          A->y <= B->y + B->h && B->y <= A->y + A->h))
+    {
+        
+        F32 dx = ( A->x + ( A->w /2)) - ( B->x + ( B->w /2));
+        F32 dy = ( A->y + ( A->h /2)) -  ( B->y + ( B->h /2)) ;
+        F32 aw = ( A->w + B->w) * 0.5;
+        F32 ah = ( A->h + B->h) * 0.5;
+        
+        if (!(abs(dx) > aw || abs(dy) > ah)){
+            if (abs(dx / B->w) > abs(dy / B->w))
+            {
+                if (dx < 0) A->x = B->x - B->w;
+                else A->x = B->x + B->w;
+                
+            } else
+            {
+                if (dy < 0) A->y = B->y - B->h;
+                else A->y = B->y + B->h;
+            }
+        }
+    }
+}
+B32 CheckPointVsRect(COALTYPE_PREFIX(Rectangle) rectangle, F32 x, F32 y)
+{
+    return ( x >= rectangle.x && y >= rectangle.y  && x <= rectangle.x + rectangle.w && y <= rectangle.y + rectangle.h);
+}
+int main(int argc, char* argv[] )
+{
+    
+    COAL_PREFIX(InitWindow)();
+    F32 Width = 1200, Height = 700;
+    COALTYPE_PREFIX(Window) window = COAL_PREFIX(CreateWindow)("coal | framework",Width, Height, COALENUM_PREFIX(STYLE_RESIZABLE));
+    COAL_PREFIX(MakeContextCurrent)(&window);
+    
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK)
+    {
+        /* @NOTE: something bad happened.... */
+        return 0x2;
+    }
+    
+    COALTYPE_PREFIX(Renderer) Renderer = COAL_PREFIX(CreateRenderer)(Width, Height, COALENUM_PREFIX(RENDERER_2D));
+    
+    
+    COALTYPE_PREFIX(Rectangle) Player = COAL_PREFIX(CreateRectangle)(Width/2, Height/2, 100,100);
+    COALTYPE_PREFIX(Rectangle) Block = COAL_PREFIX(CreateRectangle)(0,Height/2, 100, 100); 
+    COALTYPE_PREFIX(Rectangle) Block2 = COAL_PREFIX(CreateRectangle)(550,Height/2, 100, 100);
+    COALTYPE_PREFIX(Rectangle) Block3 = COAL_PREFIX(CreateRectangle)(200,Height/2, 100, 100);
+    COALTYPE_PREFIX(Rectangle) Block4 = COAL_PREFIX(CreateRectangle)(Width-100,Height/2, 100, 100);
+    COALTYPE_PREFIX(Rectangle) Water = COAL_PREFIX(CreateRectangle)(0,Block.y - Block.h-(Block.h/2), Width , (Height)) ;
+    COALTYPE_PREFIX(Rectangle) Viewport = COAL_PREFIX(CreateRectangle)(0,0,Width,Height) ;
+    COALTYPE_PREFIX(Rectangle) Canvas = COAL_PREFIX(CreateRectangle)(0,0,Width, Height) ;
+    Canvas.Texture = COAL_PREFIX(LoadTexture)("Assets//sky_gradient.jpeg", COALENUM_PREFIX(TEXTURE_JPG));
+    //Canvas.Color = (Color){11,11,33,255};
+    double MouseX, MouseY;
+    
+    COALTYPE_PREFIX(Rectangle) Button = COAL_PREFIX(CreateRectangle)(Width-250, 100, 200,60);
+    Button.Color = (Color){22,22,22,200};
+    COAL_PREFIX(Wireframe)();
+    COAL_PREFIX(Filled)();
+    COALTYPE_PREFIX(Framebuffer) fb = COAL_PREFIX(CreateFramebuffer)(Width, Height);
+    Water.Texture = fb.TextureAttachment;
+    Viewport.Texture = fb.TextureAttachment;
+    Water.Color = (Color){100,100,200,255};
+    
+    Viewport.TextureCoordinates.TopLeft = (V2){0,1};
+    Viewport.TextureCoordinates.TopRight = (V2){1,1};
+    Viewport.TextureCoordinates.BottomLeft = (V2){0,0};
+    Viewport.TextureCoordinates.BottomRight = (V2){1,0};
+    Block.Texture = COAL_PREFIX(LoadTexture)("Assets//GrassEdge2.png", COALENUM_PREFIX(TEXTURE_PNG));
+    Block2.Texture = COAL_PREFIX(LoadTexture)("Assets//Grass.png", COALENUM_PREFIX(TEXTURE_PNG));
+    Block3.Texture = COAL_PREFIX(LoadTexture)("Assets//Grass.png", COALENUM_PREFIX(TEXTURE_PNG));
+    Block4.Texture = COAL_PREFIX(LoadTexture)("Assets//GrassEdge.png", COALENUM_PREFIX(TEXTURE_PNG));
+    Player.Texture = COAL_PREFIX(LoadTexture)("Assets//player.png", COALENUM_PREFIX(TEXTURE_PNG));
+    Water.TextureCoordinates.TopLeft = (V2){0,0};
+    Water.TextureCoordinates.TopRight = (V2){1,0};
+    Water.TextureCoordinates.BottomLeft = (V2){0,1};
+    Water.TextureCoordinates.BottomRight = (V2){1,1};
+    
+    COALTYPE_PREFIX(Rectangle) Enemy = COAL_PREFIX(CreateRectangle)(Width/2 - 100, Height/2-100,200,250);
+    Enemy.Texture = COAL_PREFIX(LoadTexture)("Assets//enemy.png", COALENUM_PREFIX(TEXTURE_PNG));
+    
+    Player.x = Block3.x;
+    Player.y = Block3.y  - (Block3.h);
+    B32 MakePlayerMode = 1;
+    
+    COALTYPE_PREFIX(Text) Font = COAL_PREFIX(CreateText)("Font//demo.ttf", "FPS: Calculating.", 100,100, 30);
+    
+    COALTYPE_PREFIX(Text) Build = COAL_PREFIX(CreateText)("Font//demo.ttf", "OpenGL build", 0,20, 20);
+    Build.Color = (Color){255,0,0,255};
+    F32 prevTime = COAL_PREFIX(GetTime)();
+    I32 Framecount = 0;
+    
+    char result[50];
+    COALTYPE_PREFIX(Event) event;
+    I32 Pressed = 0;
+    while (1)
+    {
+        COAL_PREFIX(PollEvents)(&window, &event);
+        if (event.Mouse == COALENUM_PREFIX(MESSAGE_MOUSE_MOVED)){
+            MouseX = event.MouseX;
+            MouseY = event.MouseY;
+        }
+        if (event.Type == COALENUM_PREFIX(MESSAGE_WINDOW_RESIZE)){
+            glViewport(0,0,event.WindowResizeSizeW,event.WindowResizeSizeH);
+            
+        }
+        if (event.Type == COALENUM_PREFIX(MESSAGE_MOUSE_PRESSED)){
+            Pressed = 1;
+        }
+        if (event.Type == COALENUM_PREFIX(MESSAGE_MOUSE_RELEASE)){
+            Pressed = 0;
+        }
+        //Water.Color = (Color){100,100,100+sin(COAL_PREFIX(GetTime)()()) * 100,255};
+        double CurrentTime = COAL_PREFIX(GetTime)();
+        Framecount++;
+        
+        if (CurrentTime - prevTime >= 1.0)
+        {
+            sprintf(result, "FPS: %i", Framecount);
+            Font.Text = result;
+            Framecount = 0;
+            prevTime = CurrentTime;
+        }
+        
+        
+        Enemy.y = 100+sin(COAL_PREFIX(GetTime)()) * 20;
+        
+        if (MakePlayerMode){
+            Player.x =  abs(cos(COAL_PREFIX(GetTime)()) * Block4.x);
+            Player.y =  100+abs(sin(COAL_PREFIX(GetTime)()) * 10);
+        } else{
+            
+            if (Player.y <= Block.y)
+            {
+                Player.y += abs(cos(1) * 20);
+            }
+        }
+        
+        CheckCollision(&Player, &Block);
+        CheckCollision(&Player, &Block2);
+        CheckCollision(&Player, &Block3);
+        CheckCollision(&Player, &Block4);
+        SwayAnimation(&Block, 1);
+        SwayAnimation(&Block2,2);
+        SwayAnimation(&Block3,3);
+        SwayAnimation(&Block4,4);
+        COAL_PREFIX(Clear)();
+        COAL_PREFIX(DrawRectangle)(&Canvas, Renderer);
+        if (CheckPointVsRect(Button, MouseX,MouseY) && Pressed)
+        {
+            MakePlayerMode = 0;
+            Button.Color = (Color){22,22,22,255};
+        } else{
+            MakePlayerMode = 1;
+            Button.Color = (Color){22,22,22,200};
+        }
+        COAL_PREFIX(PushFramebuffer)(fb);{
+            COAL_PREFIX(Clear)();
+            
+            
+            COAL_PREFIX(DrawRectangle)(&Enemy, Renderer);
+            
+            if (MakePlayerMode){
+                COAL_PREFIX(DrawRectangleRotated)(&Player,sin(COAL_PREFIX(GetTime)()) * 10, Renderer);
+            } else
+            {
+                COAL_PREFIX(DrawRectangle)(&Player, Renderer);
+            }
+            COAL_PREFIX(DrawRectangle)(&Block, Renderer);
+            COAL_PREFIX(DrawRectangle)(&Block2, Renderer);
+            COAL_PREFIX(DrawRectangle)(&Block3, Renderer);
+            COAL_PREFIX(DrawRectangle)(&Block4, Renderer);
+            
+        } COAL_PREFIX(PopFramebuffer)();
+        COAL_PREFIX(DrawRectangle)(&Viewport, Renderer);
+        COAL_PREFIX(DrawRectangle)(&Water, Renderer);
+        COAL_PREFIX(DrawRectangleRotated)(&Button,cos(COAL_PREFIX(GetTime)()) * 2, Renderer);
+        
+        COAL_PREFIX(DrawText)(&Font, &Renderer);
+        COAL_PREFIX(DrawText)(&Build, &Renderer);
+        COAL_PREFIX(SwapBuffers)(&window);
+        
+        
+    }
+    
+    COAL_PREFIX(DeleteWindow)(&window);
+    return 0;
+    
+}

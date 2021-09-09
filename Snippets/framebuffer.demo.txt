@@ -1,0 +1,118 @@
+/*
+*  TODO: Font <--  
+*  TODO: Window Abstractions
+*  TODO: Cool post processing
+*  TODO: Audio.
+*  TODO: GUI Library
+*/
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
+#include "include/coal.h"
+#define COAL_GL_IMPL
+#include "include/helpers/coalgl_helper.h"
+#include <math.h>
+#include "include/coal_shapes.h"
+#include "include/coal_gl_framebuffer.h"
+
+String8 ReadFile(String8 File)
+{
+    FILE* file = fopen( File, "rb");
+    if (file == NULL) COAL_PRINTF("File failed to read.");
+    long Bytes;
+    
+    fseek(file, 0L, SEEK_END);
+    Bytes = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+    
+    char* msg = malloc(sizeof(char)*Bytes+1);
+    if (msg == NULL ) COAL_PRINTF("Mem error");
+    
+    if (fread(msg, 1, Bytes, file) != Bytes) COAL_PRINTF("Reading error");
+    msg[Bytes] = '\0';
+    return msg;
+}
+int main(int argc, char* argv[] )
+{
+    
+    F32 Width = 800, Height = 600;
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 24);
+    GLFWwindow* window = glfwCreateWindow(Width, Height, "coal | framework test.", 0,0);
+    
+    glEnable(GL_MULTISAMPLE);
+    
+    glfwMakeContextCurrent(window);
+    
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK)
+    {
+        /* @NOTE: something bad happened.... */
+        return 0x2;
+    }
+    
+    COALTYPE_PREFIX(Renderer) Renderer = COAL_PREFIX(CreateRenderer)(Width, Height, COALENUM_PREFIX(RENDERER_2D));
+    
+    
+    COALTYPE_PREFIX(Rectangle) Viewport = COAL_PREFIX(CreateRectangle)(0, 0, Width, Height);
+    COALTYPE_PREFIX(Rectangle) Viewport2 = COAL_PREFIX(CreateRectangle)(10, 0, Width, Height);
+    COALTYPE_PREFIX(Framebuffer) fb = COAL_PREFIX(CreateFramebuffer)(Width, Height, 1);
+    COALTYPE_PREFIX(Framebuffer) fb2 = COAL_PREFIX(CreateFramebuffer)(Width, Height, 1);
+    
+    COALTYPE_PREFIX(Shader) shader = COAL_PREFIX(CreateShader)(Renderer.VertexShader, ReadFile("frag.glsl"));
+    
+    COAL_PREFIX(CreateVertexFormat)(&shader, COALENUM_PREFIX(VERTEX_POSITION) | COALENUM_PREFIX(VERTEX_COLOR) | COALENUM_PREFIX(VERTEX_TEXTURE) | COALENUM_PREFIX(VERTEX_TEXTURE_ENABLED));;
+    COAL_PREFIX(PushViewMatrices)(shader, Renderer, Width, Height);
+    
+    Viewport.Texture = fb.TextureAttachment;
+    Viewport2.Texture = fb2.TextureAttachment;
+    
+    /* PLR */
+    COALTYPE_PREFIX(Rectangle) PLR = COAL_PREFIX(CreateRectangle)(0, 0, 100, 150);
+    COALTYPE_PREFIX(Rectangle) BG = COAL_PREFIX(CreateRectangle)(0, 0, Width, Height);
+    BG.Color = (V4){44,44,88,255};
+    while (!glfwWindowShouldClose(window))
+    {
+        glfwPollEvents();
+        COAL_PREFIX(PushShader)(Renderer.Shader);
+        
+        COAL_PREFIX(PushFramebuffer)(fb);{
+            
+            
+            COAL_PREFIX(Clear)();
+            glDisable(GL_DEPTH_TEST);
+            
+            COAL_PREFIX(DrawRectangle)(&BG, Renderer);
+            COAL_PREFIX(DrawRectangle)(&PLR, Renderer);
+        } COAL_PREFIX(PopFramebuffer)();
+        COAL_PREFIX(PushFramebuffer)(fb2);{
+            
+            
+            
+            glDisable(GL_DEPTH_TEST);
+            
+        } COAL_PREFIX(PopFramebuffer)();
+        COAL_PREFIX(PopShader)();
+        COAL_PREFIX(PushShader)(shader);
+        
+        /* viewport of the game. */
+        
+        COAL_PREFIX(DrawRectangleRotated)(&Viewport2, 180, Renderer);
+        
+        
+        COAL_PREFIX(DrawRectangleRotated)(&Viewport, 180, Renderer);
+        
+        
+        COAL_PREFIX(DrawLine)(0,Viewport2.y, Width, Viewport2.y,(V4){255,255,255,255}, Renderer);
+        /* End of the viewport of the game. */
+        glfwSwapBuffers(window);
+    }
+    
+    glfwTerminate();
+    return 0;
+    
+}
